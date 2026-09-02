@@ -10,6 +10,7 @@ node_modules/
 .next/
 out/
 npm-debug.log*
+*.tsbuildinfo
 
 media/
 staticfiles/
@@ -19,4 +20,3 @@ staticfiles/
 .vscode/
 .DS_Store
 Thumbs.db
-
