@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static event_admin log %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}">
+{% endblock %}
+
+{% block coltype %}colM{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+
+{% block content %}
+  {% admin_dashboard_events as dashboard_events %}
+  {% admin_event_stats as event_stats %}
+  <div id="content-main">
+    <section class="admin-models" aria-labelledby="admin-models-title">
+      <p class="admin-eyebrow">Administration</p>
+      <h2 id="admin-models-title">Site management</h2>
+      {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+    </section>
+
+    <section class="event-overview" aria-labelledby="event-overview-title">
+      <div class="event-overview-header">
+        <div>
+          <p class="admin-eyebrow">At a glance</p>
+          <h2 id="event-overview-title">Events</h2>
+        </div>
+        {% if perms.events.add_event %}
+          <a class="button event-add-button" href="{% url 'admin:events_event_add' %}">Add event</a>
+        {% endif %}
+      </div>
+
+      <div class="event-stats" aria-label="Event totals">
+        <div><strong>{{ event_stats.total }}</strong><span>Total</span></div>
+        <div><strong>{{ event_stats.published }}</strong><span>Published</span></div>
+        <div><strong>{{ event_stats.upcoming }}</strong><span>Upcoming</span></div>
+        <div><strong>{{ event_stats.drafts }}</strong><span>Drafts</span></div>
+      </div>
+
+      {% if dashboard_events %}
+        <div class="event-admin-list">
+          {% for event in dashboard_events %}
+            <article class="event-admin-row">
+              <div class="event-admin-thumbnail">
+                {% if event.image %}
+                  <img src="{{ event.image.url }}" alt="">
+                {% elif event.image_url %}
+                  <img src="{{ event.image_url }}" alt="">
+                {% else %}
+                  <span aria-hidden="true">{{ event.title|first }}</span>
+                {% endif %}
+              </div>
+              <div class="event-admin-primary">
+                <div class="event-admin-title-line">
+                  <h3>{{ event.title }}</h3>
+                  <span class="event-status event-status-{{ event.status }}">{{ event.get_status_display }}</span>
+                </div>
+                <p>{{ event.summary|truncatechars:135 }}</p>
+                <div class="event-admin-facts">
+                  <span>{{ event.start_at|date:"D, j M Y · H:i" }}</span>
+                  <span>{{ event.venue_name }}</span>
+                  <span>R {{ event.price|floatformat:2 }}</span>
+                  <span>{{ event.capacity }} capacity</span>
+                </div>
+              </div>
+              <div class="event-admin-actions">
+                {% if perms.bookings.view_booking %}
+                  <a href="{% url 'admin:bookings_booking_changelist' %}?event__id__exact={{ event.pk }}">Bookings</a>
+                {% endif %}
+                {% if perms.events.change_event %}
+                  <a href="{% url 'admin:events_event_change' event.pk %}">Edit</a>
+                {% endif %}
+                {% if perms.events.delete_event %}
+                  <a class="event-delete-link" href="{% url 'admin:events_event_delete' event.pk %}">Remove</a>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+        <a class="event-view-all" href="{% url 'admin:events_event_changelist' %}">View and manage all events <span aria-hidden="true">→</span></a>
+      {% else %}
+        <div class="event-admin-empty">
+          <strong>No events yet</strong>
+          <p>Create the first event to begin publishing your programme.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="recent-actions-panel" aria-labelledby="recent-actions-title">
+      <div class="module" id="recent-actions-module">
+      <h2>{% translate 'Recent actions' %}</h2>
+      <h3>{% translate 'My actions' %}</h3>
+      {% get_admin_log 10 as admin_log for_user user %}
+      {% if not admin_log %}
+        <p>{% translate 'None available' %}</p>
+      {% else %}
+        <ul class="actionlist">
+          {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+              <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+              {% if entry.is_deletion or not entry.get_admin_url %}
+                {{ entry.object_repr }}
+              {% else %}
+                <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+              {% endif %}
+              <br>
+              {% if entry.content_type %}
+                <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      </div>
+    </section>
+  </div>
+{% endblock %}
