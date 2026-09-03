@@ -1,0 +1,182 @@
+/* Loaded after Django's login.css so the full-screen composition has a
+   predictable cascade and does not inherit its fixed card dimensions. */
+html {
+  min-height: 100%;
+  background: var(--body-bg);
+}
+
+body.login {
+  display: block;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--body-bg);
+}
+
+.login #container {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: var(--body-bg);
+  box-shadow: none;
+}
+
+.login #header {
+  display: none;
+}
+
+.login #main {
+  display: grid;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  background: var(--body-bg);
+}
+
+.login #main > .content {
+  width: min(calc(100% - 40px), 332px);
+  max-width: none;
+  box-sizing: border-box;
+  padding: 48px 0;
+}
+
+.login #content {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.login-panel {
+  width: 100%;
+}
+
+.login-logo {
+  display: block;
+  width: 258px;
+  margin: 0 0 54px;
+  color: var(--body-loud-color);
+}
+
+.login-logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.login-logo text {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0.85px;
+  paint-order: stroke fill;
+  font-family: "Lobster", "Cooper Black", cursive;
+  font-size: 50px;
+}
+
+.login-logo:hover {
+  color: var(--link-hover-color);
+}
+
+.login-panel-header {
+  margin: 0 0 36px;
+}
+
+.login-panel-header .admin-eyebrow {
+  margin-bottom: 8px;
+}
+
+.login-panel-header h2 {
+  margin: 0 0 10px;
+  color: var(--body-loud-color);
+  font-family: var(--font-display);
+  font-size: clamp(38px, 5vw, 44px);
+  font-weight: 760;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+  white-space: nowrap;
+}
+
+.login-panel-header > p:last-child {
+  max-width: 31ch;
+  margin: 0;
+  color: var(--body-quiet-color);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.login #login-form .form-row {
+  padding: 0 0 22px;
+}
+
+.login #login-form .form-row label {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--body-loud-color);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.4;
+}
+
+.login #login-form .form-row input {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--selected-bg) 42%, var(--body-bg));
+  color: var(--body-fg);
+  font-size: 13px;
+}
+
+.login #login-form .form-row input:focus {
+  border-color: #4b9a7d;
+  outline: none;
+  background: var(--body-bg);
+  box-shadow: 0 0 0 3px rgba(75, 154, 125, 0.15);
+}
+
+.login #login-form input:-webkit-autofill,
+.login #login-form input:-webkit-autofill:hover,
+.login #login-form input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--body-fg);
+  -webkit-box-shadow: 0 0 0 1000px var(--darkened-bg) inset;
+  caret-color: var(--body-fg);
+}
+
+.login .submit-row {
+  margin: 10px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.login .submit-row input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.login .errornote {
+  margin: 0 0 22px;
+  border-radius: 9px;
+}
+
+@media (max-width: 390px) {
+  .login-panel-header h2 {
+    font-size: 36px;
+  }
+}

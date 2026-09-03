@@ -34,6 +34,20 @@ Administrators may upload an event image directly or provide an external image U
 
 Guest checkout creates a 15-minute pending reservation with one named attendee per ticket. Booking status is protected by a one-time returned access token whose hash is stored by the backend. Administrators can manage bookings and attendees or export selected bookings from Django Admin.
 
+## PayFast sandbox
+
+The local `.env` contains the developer's git-ignored sandbox credentials. Public examples intentionally leave all PayFast credentials blank.
+
+Checkout uses PayFast Custom Integration: EventEveryday creates a signed form and the browser posts it directly to the PayFast sandbox. PayFast confirms the outcome through an Instant Transaction Notification (ITN); the browser return URL is never trusted as proof of payment.
+
+`PAYFAST_NOTIFY_URL` must be a public URL that routes to `/api/payments/payfast/notify/`. PayFast cannot reach `localhost`, so automatic confirmation during local development requires a public HTTPS tunnel. Set the tunnel URL in `.env`, for example:
+
+```env
+PAYFAST_NOTIFY_URL=https://your-public-tunnel.example/api/payments/payfast/notify/
+```
+
+Restart the backend after changing PayFast environment values. Before production, replace every sandbox credential and URL with its live equivalent and review proxy/IP handling for the selected host.
+
 Create the first administrator in a separate terminal:
 
 ```bash

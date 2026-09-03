@@ -35,8 +35,19 @@ class HealthCheckTests(TestCase):
 
         self.assertNotContains(response, 'id="nav-sidebar"')
         self.assertNotContains(response, "Toggle navigation")
-        self.assertContains(response, "View site")
+        self.assertContains(response, "Visit site")
+        self.assertContains(response, 'class="admin-page-bar"')
+        self.assertContains(response, 'class="change-password-link"')
         self.assertContains(response, "Log out")
+
+        content = response.content.decode()
+        self.assertLess(content.index("app-events module"), content.index("app-bookings module"))
+        self.assertLess(content.index("app-bookings module"), content.index("app-payments module"))
+        self.assertLess(content.index("app-payments module"), content.index("app-auth module"))
+        self.assertLess(
+            content.index("model-payment\""),
+            content.index("model-paymentwebhookevent\""),
+        )
 
 
 class SeedDevelopmentAdminTests(TestCase):

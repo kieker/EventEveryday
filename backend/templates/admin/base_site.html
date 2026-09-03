@@ -8,24 +8,30 @@
   <link rel="stylesheet" href="{% static 'admin/css/eventeveryday.css' %}">
 {% endblock %}
 
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&amp;family=Lobster&amp;family=Manrope:wght@500..800&amp;display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block branding %}
   <div id="site-name">
-    <a href="{% url 'admin:index' %}" class="eventeveryday-brand">
-      <span class="eventeveryday-mark" aria-hidden="true">E</span>
-      <span class="eventeveryday-wordmark">
-        <strong>EventEveryday</strong>
-        
-      </span>
+    <a href="{% url 'admin:index' %}" class="admin-header-logo" aria-label="EventEveryday administration home">
+      {% include "admin/includes/eventeveryday_logo.html" %}
     </a>
   </div>
 {% endblock %}
 
 {% block userlinks %}
-  {% if site_url %}
-    <a href="{{ site_url }}" class="view-site-link">{% translate 'View site' %}</a>
-  {% endif %}
   {% if user.has_usable_password %}
-    <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a>
+    <a href="{% url 'admin:password_change' %}" class="change-password-link">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="12" r="4"/>
+        <path d="M12 12h9m-3 0v3m-3-3v2"/>
+      </svg>
+      {% translate 'Change password' %}
+    </a>
   {% endif %}
   <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
     {% csrf_token %}
@@ -35,3 +41,19 @@
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
+
+{% block nav-breadcrumbs %}
+  <nav class="admin-page-bar" aria-label="{% translate 'Breadcrumbs' %}">
+    {% block breadcrumbs %}
+      <div class="breadcrumbs">
+        <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+        {% if title %} &rsaquo; {{ title }}{% endif %}
+      </div>
+    {% endblock %}
+    {% if site_url %}
+      <a href="{{ site_url }}" class="view-site-link">
+        {% translate 'Visit site' %}
+      </a>
+    {% endif %}
+  </nav>
+{% endblock %}

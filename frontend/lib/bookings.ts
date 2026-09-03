@@ -20,6 +20,11 @@ export type Booking = {
 
 export type BookingCreated = Booking & { access_token: string };
 
+export type PayFastCheckout = {
+  action_url: string;
+  fields: Record<string, string>;
+};
+
 export async function createBooking(payload: {
   event_slug: string;
   contact_name: string;
@@ -48,6 +53,16 @@ export async function getBooking(reference: string, token: string) {
   } catch {
     return null;
   }
+}
+
+export async function createPayFastCheckout(reference: string, token: string) {
+  const response = await fetch(
+    `${PUBLIC_API_URL}/payments/payfast/checkout/${encodeURIComponent(reference)}/`,
+    { method: "POST", headers: { "X-Booking-Token": token } },
+  );
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(extractApiError(body));
+  return body as PayFastCheckout;
 }
 
 function extractApiError(value: unknown): string {

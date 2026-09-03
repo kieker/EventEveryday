@@ -130,6 +130,12 @@ If payment fails or the reservation expires, held capacity is released. Duplicat
 - Secrets exist only in environment variables or a deployment secret manager.
 - Logs redact authorization headers, cookies, payment payload secrets, and personal data where practical.
 - The initial provider is PayFast and the initial/only proof-of-concept currency is `ZAR`.
+- A pending booking can request a signed PayFast Custom Integration form. The browser posts that form directly to PayFast; payment credentials never pass through EventEveryday.
+- PayFast checkout signatures use the documented field order, PHP-style URL encoding, the configured salt passphrase, and an MD5 digest as required by PayFast's Custom Integration protocol.
+- A PayFast Instant Transaction Notification is accepted only after its signature, source address, merchant ID, expected amount, and PayFast server confirmation all validate.
+- Successful `COMPLETE` notifications confirm the booking and record the PayFast transaction reference. Failed and cancelled statuses update unpaid bookings without overriding an already confirmed booking.
+- Notification processing is idempotent and retains a security-check audit record without storing the full notification payload.
+- Browser return URLs never confirm a payment. After returning from PayFast, the frontend polls the protected booking-status endpoint briefly while waiting for the server notification.
 
 ### Calendar
 
@@ -193,8 +199,8 @@ Public/customer endpoints:
 - `POST /api/bookings`
 - `GET /api/bookings/{reference}` using authenticated ownership or the `X-Booking-Token` guest credential
 - `GET /api/me/bookings`
-- `POST /api/bookings/{reference}/payment-session`
 - `POST /api/payments/payfast/notify` (provider-authenticated)
+- `POST /api/payments/payfast/checkout/{reference}` using authenticated ownership or the `X-Booking-Token` guest credential
 
 Administration may initially use Django Admin. Explicit admin APIs can be added when a custom dashboard is justified.
 

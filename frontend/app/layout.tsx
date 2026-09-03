@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
+import { Lobster } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "./styles.css";
+
+const logoFont = Lobster({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-logo",
+  weight: "400",
+});
 
 export const metadata: Metadata = {
   title: "EventEveryday",
@@ -11,8 +19,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en-ZA">
-      <body>{children}</body>
+      <body className={logoFont.variable}>{children}</body>
     </html>
   );
 }
-

@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { EventCard } from "@/components/event-card";
+import { SiteLogo } from "@/components/site-logo";
 import { getEvents } from "@/lib/events";
 
 const API_URL = process.env.INTERNAL_API_URL ?? "http://localhost:8000/api";
@@ -27,7 +26,7 @@ export default async function Home() {
   return (
     <main>
       <nav>
-        <Link className="brand" href="/">EventEveryday</Link>
+        <SiteLogo />
         <span>Proof of concept</span>
       </nav>
 

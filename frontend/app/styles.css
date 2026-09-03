@@ -37,12 +37,32 @@ nav, footer {
   letter-spacing: 0.08em;
 }
 
-.brand {
+.site-logo {
+  display: block;
+  width: clamp(11.5rem, 17vw, 13.25rem);
   color: var(--ink);
-  font-weight: 800;
-  letter-spacing: -0.04em;
   text-transform: none;
-  font-size: 1.35rem;
+  transition: color 160ms ease, opacity 160ms ease;
+}
+
+.site-logo:hover {
+  color: var(--accent);
+}
+
+.site-logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.site-logo text {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 0.85px;
+  paint-order: stroke fill;
+  font-family: var(--font-logo), "Lobster", "Cooper Black", cursive;
+  font-size: 50px;
 }
 
 .hero {
@@ -155,7 +175,9 @@ h1 {
 .booking-summary-grid dd { margin: 0.35rem 0 0; line-height: 1.5; }
 .payment-next-step { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-top: 3rem; padding: 1.5rem; background: var(--ink); color: white; }
 .payment-next-step p { margin: 0.35rem 0 0; color: rgba(255,255,255,0.7); }
-.payment-next-step button { padding: 0.9rem 1.1rem; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; }
+.payment-next-step button { padding: 0.9rem 1.1rem; border: 1px solid rgba(255,255,255,0.3); background: var(--accent); color: white; cursor: pointer; font-weight: 800; }
+.payment-next-step button:disabled { cursor: wait; opacity: 0.65; }
+.payment-next-step .payment-error { color: #ffb9ae; font-weight: 700; }
 
 .foundation {
   display: grid;

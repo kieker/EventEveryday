@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BookingForm } from "@/components/booking-form";
+import { SiteLogo } from "@/components/site-logo";
 import {
   formatEventDate,
   formatEventTime,
@@ -31,7 +32,7 @@ export default async function EventPage({ params }: EventPageProps) {
   return (
     <main>
       <nav>
-        <Link className="brand" href="/">EventEveryday</Link>
+        <SiteLogo />
         <Link href="/#events">All events</Link>
       </nav>
 

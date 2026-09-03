@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "core",
     "events",
     "bookings",
+    "payments",
 ]
 
 MIDDLEWARE = [
@@ -112,3 +113,32 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
 }
+
+PAYFAST_SANDBOX = os.environ.get("PAYFAST_SANDBOX", "true").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+PAYFAST_MERCHANT_ID = os.environ.get("PAYFAST_MERCHANT_ID", "")
+PAYFAST_MERCHANT_KEY = os.environ.get("PAYFAST_MERCHANT_KEY", "")
+PAYFAST_PASSPHRASE = os.environ.get("PAYFAST_PASSPHRASE", "")
+PAYFAST_PROCESS_URL = os.environ.get(
+    "PAYFAST_PROCESS_URL",
+    "https://sandbox.payfast.co.za/eng/process"
+    if PAYFAST_SANDBOX
+    else "https://www.payfast.co.za/eng/process",
+)
+PAYFAST_VALIDATE_URL = os.environ.get(
+    "PAYFAST_VALIDATE_URL",
+    "https://sandbox.payfast.co.za/eng/query/validate"
+    if PAYFAST_SANDBOX
+    else "https://www.payfast.co.za/eng/query/validate",
+)
+PUBLIC_FRONTEND_URL = os.environ.get("PUBLIC_FRONTEND_URL", "http://localhost:3000").rstrip("/")
+PUBLIC_BACKEND_URL = os.environ.get("PUBLIC_BACKEND_URL", "http://localhost:8000").rstrip("/")
+PAYFAST_NOTIFY_URL = os.environ.get(
+    "PAYFAST_NOTIFY_URL", f"{PUBLIC_BACKEND_URL}/api/payments/payfast/notify/"
+)
+PAYFAST_TRUST_X_FORWARDED_FOR = os.environ.get(
+    "PAYFAST_TRUST_X_FORWARDED_FOR", "false"
+).lower() in {"1", "true", "yes"}

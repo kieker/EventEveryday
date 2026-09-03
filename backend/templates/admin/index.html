@@ -8,17 +8,17 @@
 
 {% block coltype %}colM{% endblock %}
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
-{% block nav-breadcrumbs %}{% endblock %}
 {% block nav-sidebar %}{% endblock %}
 
 {% block content %}
   {% admin_dashboard_events as dashboard_events %}
   {% admin_event_stats as event_stats %}
+  {% ordered_site_management_apps app_list as site_management_apps %}
   <div id="content-main">
     <section class="admin-models" aria-labelledby="admin-models-title">
       <p class="admin-eyebrow">Administration</p>
       <h2 id="admin-models-title">Site management</h2>
-      {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+      {% include "admin/app_list.html" with app_list=site_management_apps show_changelinks=True %}
     </section>
 
     <section class="event-overview" aria-labelledby="event-overview-title">
@@ -89,8 +89,9 @@
     </section>
 
     <section class="recent-actions-panel" aria-labelledby="recent-actions-title">
+      <p class="admin-eyebrow">History</p>
+      <h2 id="recent-actions-title">{% translate 'Recent actions' %}</h2>
       <div class="module" id="recent-actions-module">
-      <h2>{% translate 'Recent actions' %}</h2>
       <h3>{% translate 'My actions' %}</h3>
       {% get_admin_log 10 as admin_log for_user user %}
       {% if not admin_log %}
@@ -100,6 +101,16 @@
           {% for entry in admin_log %}
             <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
               <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+              <span class="recent-action-icon" aria-hidden="true">
+                {% if entry.is_addition %}
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
+                {% elif entry.is_change %}
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="m14.7 6.3 3 3M5 19l3.6-.7L18.7 8.2a2.1 2.1 0 0 0-3-3L5.7 15.4 5 19Z"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg>
+                {% endif %}
+              </span>
+              <span class="recent-action-content">
               {% if entry.is_deletion or not entry.get_admin_url %}
                 {{ entry.object_repr }}
               {% else %}
@@ -109,6 +120,7 @@
               {% if entry.content_type %}
                 <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
               {% endif %}
+              </span>
             </li>
           {% endfor %}
         </ul>
