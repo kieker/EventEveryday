@@ -25,6 +25,7 @@ Requirements: Docker Desktop with Docker Compose.
 3. Open the frontend at <http://localhost:3000>.
 4. Open the API health endpoint at <http://localhost:8000/api/health/>.
 5. Open Django Admin at <http://localhost:8000/admin/>.
+6. Open the local Mailpit inbox at <http://localhost:8025/>.
 
 When all three `DEV_ADMIN_*` values are present in the local `.env`, startup creates or updates that development administrator automatically. The seed is idempotent and the credentials are intentionally excluded from version control.
 
@@ -33,6 +34,21 @@ Startup also seeds three published development events when their slugs are not a
 Administrators may upload an event image directly or provide an external image URL. An uploaded image takes precedence. Development uploads are stored under `backend/media/`; production deployments should configure durable object storage.
 
 Guest checkout creates a 15-minute pending reservation with one named attendee per ticket. Booking status is protected by a one-time returned access token whose hash is stored by the backend. Administrators can manage bookings and attendees or export selected bookings from Django Admin.
+
+Customers can create an account or sign in from the frontend. Authenticated bookings are attached to the customer automatically and appear under **My bookings**. Browser authentication uses Django's secure, HTTP-only session cookie, and state-changing requests include a CSRF token; guest checkout remains available without an account.
+
+## Email
+
+Development email is captured by Mailpit and never leaves the local machine. To use Resend in staging or production, verify a sending domain, create a domain-restricted sending API key, and set these secret environment values:
+
+```env
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_replace_with_your_secret_key
+DEFAULT_FROM_EMAIL=EventEveryday <bookings@updates.example.com>
+EMAIL_REPLY_TO=support@example.com
+```
+
+Never commit the API key. Keep `EMAIL_PROVIDER=smtp` locally unless you intentionally want to exercise real delivery.
 
 ## PayFast sandbox
 
@@ -59,7 +75,7 @@ Stop the services with `docker compose down`. The PostgreSQL database remains in
 ## Checks
 
 ```bash
-docker compose run --rm backend python manage.py test
+docker compose run --rm backend python manage.py test core bookings events payments
 docker compose run --rm frontend npm run lint
 docker compose run --rm frontend npm run typecheck
 docker compose config --quiet

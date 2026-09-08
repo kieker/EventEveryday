@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import transaction
 
 from events.models import Event
 from events.serializers import EventListSerializer
@@ -77,3 +78,36 @@ class BookingCreateSerializer(serializers.Serializer):
         data["access_token"] = instance._raw_access_token
         return data
 
+
+class BookingUpdateSerializer(serializers.ModelSerializer):
+    attendees = AttendeeSerializer(many=True)
+
+    class Meta:
+        model = Booking
+        fields = ("contact_name", "contact_email", "contact_phone", "attendees")
+
+    def validate_attendees(self, value):
+        names = [attendee["full_name"].strip() for attendee in value]
+        if any(not name for name in names):
+            raise serializers.ValidationError("Every ticket requires an attendee name.")
+        if len(names) != self.instance.quantity:
+            raise serializers.ValidationError(
+                f"This booking requires exactly {self.instance.quantity} attendee names."
+            )
+        return value
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        attendees = validated_data.pop("attendees")
+        instance.contact_name = validated_data["contact_name"].strip()
+        instance.contact_email = validated_data["contact_email"].strip().lower()
+        instance.contact_phone = validated_data.get("contact_phone", "").strip()
+        instance.save(
+            update_fields=("contact_name", "contact_email", "contact_phone", "updated_at")
+        )
+        instance.attendees.all().delete()
+        Attendee.objects.bulk_create(
+            Attendee(booking=instance, full_name=item["full_name"].strip())
+            for item in attendees
+        )
+        return instance

@@ -1,6 +1,5 @@
 import type { EventSummary } from "@/lib/events";
-
-const PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+import { csrfHeaders, extractApiError, PUBLIC_API_URL } from "@/lib/api";
 
 export type Booking = {
   reference: string;
@@ -34,19 +33,20 @@ export async function createBooking(payload: {
 }) {
   const response = await fetch(`${PUBLIC_API_URL}/bookings/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
     body: JSON.stringify(payload),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(extractApiError(body));
+  if (!response.ok) throw new Error(extractApiError(body, "We could not create this booking."));
   return body as BookingCreated;
 }
 
-export async function getBooking(reference: string, token: string) {
+export async function getBooking(reference: string, token?: string | null) {
   try {
     const response = await fetch(
       `${PUBLIC_API_URL}/bookings/${encodeURIComponent(reference)}/`,
-      { headers: { "X-Booking-Token": token }, cache: "no-store" },
+      { credentials: "include", headers: token ? { "X-Booking-Token": token } : {}, cache: "no-store" },
     );
     if (!response.ok) return null;
     return response.json() as Promise<Booking>;
@@ -55,25 +55,39 @@ export async function getBooking(reference: string, token: string) {
   }
 }
 
-export async function createPayFastCheckout(reference: string, token: string) {
+export async function updateBooking(
+  reference: string,
+  token: string | null,
+  payload: Pick<Booking, "contact_name" | "contact_email" | "contact_phone" | "attendees">,
+) {
+  const response = await fetch(`${PUBLIC_API_URL}/bookings/${encodeURIComponent(reference)}/`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "X-Booking-Token": token } : {}),
+      ...(await csrfHeaders()),
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(extractApiError(body, "We could not update this booking."));
+  return body as Booking;
+}
+
+export async function createPayFastCheckout(reference: string, token?: string | null) {
   const response = await fetch(
     `${PUBLIC_API_URL}/payments/payfast/checkout/${encodeURIComponent(reference)}/`,
-    { method: "POST", headers: { "X-Booking-Token": token } },
+    { method: "POST", credentials: "include", headers: { ...(token ? { "X-Booking-Token": token } : {}), ...(await csrfHeaders()) } },
   );
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(extractApiError(body));
+  if (!response.ok) throw new Error(extractApiError(body, "PayFast checkout is unavailable."));
   return body as PayFastCheckout;
 }
 
-function extractApiError(value: unknown): string {
-  if (!value || typeof value !== "object") return "We could not create this booking.";
-  for (const message of Object.values(value as Record<string, unknown>)) {
-    if (typeof message === "string") return message;
-    if (Array.isArray(message) && message.length) {
-      const first = message[0];
-      if (typeof first === "string") return first;
-      if (first && typeof first === "object") return extractApiError(first);
-    }
-  }
-  return "We could not create this booking.";
+export async function getMyBookings() {
+  const response = await fetch(`${PUBLIC_API_URL}/me/bookings/`, { credentials: "include", cache: "no-store" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(extractApiError(body, "We could not load your bookings."));
+  return body as Booking[];
 }

@@ -910,7 +910,10 @@ body #toolbar form input[type="submit"] {
   color: var(--body-quiet-color);
   font-size: 11px;
 }
-
+body #changelist .toplinks {
+  margin-bottom:10px;
+  border-bottom: 1px solid transparent;
+}
 #changelist-filter {
   position: static;
   width: auto;

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "anymail",
     "core",
     "events",
     "bookings",
@@ -142,3 +143,21 @@ PAYFAST_NOTIFY_URL = os.environ.get(
 PAYFAST_TRUST_X_FORWARDED_FOR = os.environ.get(
     "PAYFAST_TRUST_X_FORWARDED_FOR", "false"
 ).lower() in {"1", "true", "yes"}
+
+EMAIL_PROVIDER = os.environ.get("EMAIL_PROVIDER", "smtp").lower()
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL", "EventEveryday <bookings@eventeveryday.local>"
+)
+SERVER_EMAIL = os.environ.get("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+EMAIL_REPLY_TO = os.environ.get("EMAIL_REPLY_TO", "")
+
+if EMAIL_PROVIDER == "resend":
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {"RESEND_API_KEY": os.environ.get("RESEND_API_KEY", "")}
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get("EMAIL_HOST", "mailpit")
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "1025"))
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "false").lower() in {
+        "1", "true", "yes"
+    }

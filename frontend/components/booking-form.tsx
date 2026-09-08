@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createBooking } from "@/lib/bookings";
 import { formatPrice } from "@/lib/events";
+import { useAuth } from "@/components/auth-provider";
 
 type BookingFormProps = {
   eventSlug: string;
@@ -14,11 +15,12 @@ type BookingFormProps = {
 
 export function BookingForm({ eventSlug, price, availableCapacity }: BookingFormProps) {
   const router = useRouter();
+  const { customer } = useAuth();
   const maximum = Math.min(availableCapacity, 10);
   const [quantity, setQuantity] = useState(maximum > 0 ? 1 : 0);
   const [attendees, setAttendees] = useState(maximum > 0 ? [""] : []);
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [contactName, setContactName] = useState<string | null>(null);
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,8 +45,8 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
     try {
       const booking = await createBooking({
         event_slug: eventSlug,
-        contact_name: contactName,
-        contact_email: contactEmail,
+        contact_name: contactName ?? customer?.full_name ?? "",
+        contact_email: contactEmail ?? customer?.email ?? "",
         contact_phone: contactPhone,
         attendees: attendees.map((full_name) => ({ full_name })),
       });
@@ -85,23 +87,12 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
           </select>
         </label>
 
-        <fieldset>
-          <legend>Booking contact</legend>
-          <label>
-            Full name
-            <input required value={contactName} onChange={(event) => setContactName(event.target.value)} />
-          </label>
-          <label>
-            Email address
-            <input required type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} />
-          </label>
-          <label>
-            Phone <small>Optional</small>
-            <input type="tel" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} />
-          </label>
-        </fieldset>
+        <div className="booking-total">
+          <span>Total</span>
+          <strong>{formatPrice(String(Number(price) * quantity))}</strong>
+        </div>
 
-        <fieldset>
+        <fieldset className="booking-attendees">
           <legend>Attendees</legend>
           {attendees.map((name, index) => (
             <label key={index}>
@@ -111,17 +102,36 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
           ))}
         </fieldset>
 
-        <div className="booking-total">
-          <span>Total</span>
-          <strong>{formatPrice(String(Number(price) * quantity))}</strong>
-        </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <button disabled={submitting} type="submit">
-          {submitting ? "Reserving…" : "Reserve tickets"}
-        </button>
-        <small>Your reservation is held for 15 minutes before payment.</small>
+        <details className="booking-details" open>
+          <summary>
+            <span>Booking contact</span>
+            <span className="booking-chevron" aria-hidden="true" />
+          </summary>
+          <div className="booking-details-content">
+            {customer && <p className="signed-in-note">Booking as <strong>{customer.email}</strong>. This reservation will be saved to your account.</p>}
+            <fieldset>
+              <label>
+                Full name
+                <input required value={contactName ?? customer?.full_name ?? ""} onChange={(event) => setContactName(event.target.value)} />
+              </label>
+              <label>
+                Email address
+                <input required type="email" value={contactEmail ?? customer?.email ?? ""} onChange={(event) => setContactEmail(event.target.value)} />
+              </label>
+              <label>
+                Phone <small>Optional</small>
+                <input type="tel" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} />
+              </label>
+            </fieldset>
+
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <button disabled={submitting} type="submit">
+              {submitting ? "Reserving…" : "Reserve tickets"}
+            </button>
+            <small>Your reservation is held for 15 minutes before payment.</small>
+          </div>
+        </details>
       </form>
     </aside>
   );
 }
-

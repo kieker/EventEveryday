@@ -1,7 +1,5 @@
-import Link from "next/link";
-
 import { BookingStatus } from "@/components/booking-status";
-import { SiteLogo } from "@/components/site-logo";
+import { SiteHeader } from "@/components/site-header";
 
 type BookingPageProps = { params: Promise<{ reference: string }> };
 
@@ -9,10 +7,7 @@ export default async function BookingPage({ params }: BookingPageProps) {
   const { reference } = await params;
   return (
     <main>
-      <nav>
-        <SiteLogo />
-        <Link href="/#events">All events</Link>
-      </nav>
+      <SiteHeader />
       <BookingStatus reference={reference} />
     </main>
   );

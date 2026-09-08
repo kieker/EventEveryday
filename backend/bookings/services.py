@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
+from core.emails import send_booking_reserved_email
 from events.models import Event
 
 from .models import Attendee, Booking, hash_access_token
@@ -67,6 +68,7 @@ def create_guest_booking(*, event, contact_name, contact_email, contact_phone, a
     Attendee.objects.bulk_create(
         [Attendee(booking=booking, full_name=name.strip()) for name in attendees]
     )
+    transaction.on_commit(lambda: send_booking_reserved_email(booking))
     return booking, access_token
 
 

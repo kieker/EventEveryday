@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BookingForm } from "@/components/booking-form";
-import { SiteLogo } from "@/components/site-logo";
+import { SiteHeader } from "@/components/site-header";
 import {
   formatEventDate,
   formatEventTime,
@@ -31,14 +30,21 @@ export default async function EventPage({ params }: EventPageProps) {
 
   return (
     <main>
-      <nav>
-        <SiteLogo />
-        <Link href="/#events">All events</Link>
-      </nav>
+      <SiteHeader />
 
       <article className="event-detail">
-        <header className="event-detail-header">
-          <div>
+        <header className={`event-detail-header${event.image_url ? " has-image" : ""}`}>
+          {event.image_url && (
+            <Image
+              alt=""
+              fill
+              priority
+              unoptimized
+              sizes="100vw"
+              src={resolveEventImageUrl(event.image_url)}
+            />
+          )}
+          <div className="event-detail-heading">
             <p className="eyebrow">{formatEventDate(event.start_at)}</p>
             <h1>{event.title}</h1>
             <p className="intro">{event.summary}</p>
@@ -49,19 +55,6 @@ export default async function EventPage({ params }: EventPageProps) {
             price={event.price}
           />
         </header>
-
-        {event.image_url && (
-          <div className="event-hero-image">
-            <Image
-              alt=""
-              fill
-              priority
-              unoptimized
-              sizes="100vw"
-              src={resolveEventImageUrl(event.image_url)}
-            />
-          </div>
-        )}
 
         <div className="event-detail-body">
           <section>

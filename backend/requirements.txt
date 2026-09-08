@@ -5,3 +5,4 @@ dj-database-url==3.1.0
 psycopg[binary]==3.3.2
 gunicorn==25.1.0
 Pillow==12.3.0
+django-anymail[resend]==15.1

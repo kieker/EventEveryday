@@ -3,6 +3,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from bookings.views import MyBookingListView
+
 
 admin.site.site_header = "EventEveryday"
 admin.site.site_title = "EventEveryday Admin"
@@ -13,6 +15,7 @@ admin.site.enable_nav_sidebar = False
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("core.urls")),
+    path("api/me/bookings/", MyBookingListView.as_view(), name="my-bookings"),
     path("api/events/", include("events.urls")),
     path("api/bookings/", include("bookings.urls")),
     path("api/payments/", include("payments.urls")),

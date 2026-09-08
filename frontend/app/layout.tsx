@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Lobster } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { AuthProvider } from "@/components/auth-provider";
+
 import "./styles.css";
 
 const logoFont = Lobster({
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en-ZA">
-      <body className={logoFont.variable}>{children}</body>
+      <body className={logoFont.variable}><AuthProvider>{children}</AuthProvider></body>
     </html>
   );
 }

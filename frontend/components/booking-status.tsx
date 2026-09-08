@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Booking, createPayFastCheckout, getBooking } from "@/lib/bookings";
+import { BookingEditor } from "@/components/booking-editor";
 import { formatEventDate, formatPrice } from "@/lib/events";
 
 export function BookingStatus({ reference }: { reference: string }) {
@@ -17,13 +18,13 @@ export function BookingStatus({ reference }: { reference: string }) {
     async function loadBooking() {
       await Promise.resolve();
       const token = sessionStorage.getItem(`booking-token:${reference}`);
-      let result = token ? await getBooking(reference, token) : null;
+      let result = await getBooking(reference, token);
       if (active) {
         setBooking(result);
         setLoading(false);
       }
       const returnedFromPayFast = new URLSearchParams(window.location.search).get("payment") === "returned";
-      for (let attempt = 0; active && token && returnedFromPayFast && result?.status === "pending_payment" && attempt < 10; attempt += 1) {
+      for (let attempt = 0; active && returnedFromPayFast && result?.status === "pending_payment" && attempt < 10; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2000));
         result = await getBooking(reference, token);
         if (active) setBooking(result);
@@ -41,7 +42,7 @@ export function BookingStatus({ reference }: { reference: string }) {
       <div className="booking-message">
         <p className="eyebrow">Booking unavailable</p>
         <h1>We can’t open this booking.</h1>
-        <p>This browser does not have the secure access token created with the reservation.</p>
+        <p>Sign in with the account that made this booking, or open it in the browser session where it was created.</p>
         <Link className="primary" href="/#events">Browse events</Link>
       </div>
     );
@@ -49,10 +50,6 @@ export function BookingStatus({ reference }: { reference: string }) {
 
   async function continueToPayFast() {
     const token = sessionStorage.getItem(`booking-token:${reference}`);
-    if (!token) {
-      setPaymentError("The secure booking token is no longer available in this browser.");
-      return;
-    }
     setPaymentError("");
     setRedirecting(true);
     try {
@@ -89,22 +86,6 @@ export function BookingStatus({ reference }: { reference: string }) {
           <strong>{statusLabel}</strong>
         </div>
       </header>
-      <div className="booking-reference">
-        <span>Booking reference</span>
-        <strong>{booking.reference}</strong>
-      </div>
-      <div className="booking-summary-grid">
-        <section>
-          <h2>Attendees</h2>
-          <ol>{booking.attendees.map((attendee) => <li key={attendee.full_name}>{attendee.full_name}</li>)}</ol>
-        </section>
-        <dl>
-          <div><dt>Date</dt><dd>{formatEventDate(booking.event.start_at)}</dd></div>
-          <div><dt>Venue</dt><dd>{booking.event.venue_name}</dd></div>
-          <div><dt>Contact</dt><dd>{booking.contact_name}<br />{booking.contact_email}</dd></div>
-          <div><dt>Total</dt><dd>{formatPrice(booking.total)}</dd></div>
-        </dl>
-      </div>
       {booking.status === "pending_payment" && (
         <div className="payment-next-step">
           <div>
@@ -117,6 +98,26 @@ export function BookingStatus({ reference }: { reference: string }) {
           </button>
         </div>
       )}
+      <div className="booking-reference">
+        <span>Booking reference</span>
+        <strong>{booking.reference}</strong>
+      </div>
+      <div className="booking-summary-grid">
+        {booking.status === "pending_payment" ? (
+          <BookingEditor booking={booking} onUpdated={setBooking} />
+        ) : (
+          <section>
+            <h2>Attendees</h2>
+            <ol>{booking.attendees.map((attendee) => <li key={attendee.full_name}>{attendee.full_name}</li>)}</ol>
+          </section>
+        )}
+        <dl>
+          <div><dt>Date</dt><dd>{formatEventDate(booking.event.start_at)}</dd></div>
+          <div><dt>Venue</dt><dd>{booking.event.venue_name}</dd></div>
+          {booking.status !== "pending_payment" && <div><dt>Contact</dt><dd>{booking.contact_name}<br />{booking.contact_email}{booking.contact_phone && <><br />{booking.contact_phone}</>}</dd></div>}
+          <div><dt>Total</dt><dd>{formatPrice(booking.total)}</dd></div>
+        </dl>
+      </div>
     </article>
   );
 }

@@ -13,6 +13,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from bookings.models import Booking
+from core.emails import send_booking_confirmed_email
 
 from .models import Payment, PaymentWebhookEvent
 
@@ -262,9 +263,12 @@ def process_notification(data, remote_ip):
 
     payment.provider_transaction_reference = provider_reference
     if payment_status == "COMPLETE":
+        was_confirmed = booking.status == Booking.Status.CONFIRMED
         payment.status = Payment.Status.COMPLETE
         payment.paid_at = timezone.now()
         booking.status = Booking.Status.CONFIRMED
+        if not was_confirmed:
+            transaction.on_commit(lambda: send_booking_confirmed_email(booking))
     elif payment_status == "FAILED":
         payment.status = Payment.Status.FAILED
         if booking.status != Booking.Status.CONFIRMED:

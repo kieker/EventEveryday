@@ -9,4 +9,3 @@ urlpatterns = [
     path("", BookingCreateView.as_view(), name="create"),
     path("<str:reference>/", BookingDetailView.as_view(), name="detail"),
 ]
-
