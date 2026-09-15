@@ -17,7 +17,7 @@ class BookingDetailView(APIView):
 
     def get_booking(self, request, reference):
         try:
-            booking = Booking.objects.select_related("event", "user").prefetch_related(
+            booking = Booking.objects.select_related("event", "user", "payment").prefetch_related(
                 "attendees"
             ).get(reference=reference)
         except Booking.DoesNotExist:
@@ -54,7 +54,7 @@ class BookingDetailView(APIView):
 
         serializer = BookingUpdateSerializer(booking, data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        booking = serializer.save()
         return Response(BookingSerializer(booking, context={"request": request}).data)
 
 
@@ -65,7 +65,7 @@ class MyBookingListView(generics.ListAPIView):
     def get_queryset(self):
         bookings = (
             Booking.objects.filter(user=self.request.user)
-            .select_related("event")
+            .select_related("event", "payment")
             .prefetch_related("attendees")
         )
         for booking in bookings:

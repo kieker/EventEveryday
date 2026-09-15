@@ -29,6 +29,47 @@ def make_event(**overrides):
     return Event.objects.create(**values)
 
 
+class CalendarApiTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="calendar-user")
+        self.event = make_event(start_at="2026-09-30T23:00:00+02:00", end_at="2026-10-01T02:00:00+02:00")
+        self.draft = make_event(title="Draft", status=Event.Status.DRAFT, start_at=self.event.start_at, end_at=self.event.end_at)
+        self.url = reverse("events:calendar")
+
+    def test_public_calendar_includes_overlapping_events_but_hides_drafts(self):
+        response = self.client.get(self.url, {"month": "2026-10"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.json()], [self.event.pk])
+        self.assertEqual(self.client.get(self.url, {"month": "2026-11"}).json(), [])
+
+    def test_private_scopes_require_access_and_month_is_validated(self):
+        for scope in ("mine", "admin"):
+            self.assertEqual(self.client.get(self.url, {"month": "2026-10", "scope": scope}).status_code, 403)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url, {"month": "2026-10", "scope": "admin"}).status_code, 403)
+        for month in ("bad", "2026-13", "9999-12"):
+            self.assertEqual(self.client.get(self.url, {"month": month}).status_code, 400)
+
+    def test_customer_calendar_only_contains_own_confirmed_events_once(self):
+        from bookings.models import Booking
+        other = get_user_model().objects.create_user(username="other-calendar-user")
+        for user, event, status in ((self.user, self.event, "confirmed"), (self.user, self.event, "confirmed"), (self.user, self.draft, "pending_payment"), (other, self.draft, "confirmed")):
+            Booking.objects.create(user=user, event=event, status=status, contact_name="Guest", contact_email="guest@example.com", quantity=1, unit_price=250, total=250, expires_at=timezone.now())
+        self.client.force_login(self.user)
+        response = self.client.get(self.url, {"month": "2026-10", "scope": "mine"})
+        self.assertEqual([row["id"] for row in response.json()], [self.event.pk])
+
+    def test_authorized_admin_can_see_drafts(self):
+        from django.contrib.auth.models import Permission
+        self.user.is_staff = True
+        self.user.save()
+        self.user.user_permissions.add(Permission.objects.get(codename="view_event"))
+        self.client.force_login(self.user)
+        response = self.client.get(self.url, {"month": "2026-10", "scope": "admin"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()), 2)
+
+
 class EventModelTests(TestCase):
     def test_slug_is_generated_and_made_unique(self):
         first = make_event()

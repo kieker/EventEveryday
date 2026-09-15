@@ -3,11 +3,13 @@ import json
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from .emails import send_welcome_email
 
@@ -91,8 +93,42 @@ def sign_out(request):
     return JsonResponse({}, status=204)
 
 
-@require_GET
+@csrf_protect
+@require_http_methods(["GET", "PATCH"])
 def me(request):
     if not request.user.is_authenticated:
         return JsonResponse({"detail": "Authentication credentials were not provided."}, status=401)
-    return JsonResponse(user_payload(request.user))
+    user = request.user
+    if request.method == "PATCH":
+        data = request_data(request)
+        if not isinstance(data, dict):
+            return JsonResponse({"detail": "Provide profile fields."}, status=400)
+        name = data.get("full_name", user.get_full_name())
+        email = data.get("email", user.email)
+        if not isinstance(name, str) or not name.strip() or len(name.strip()) > 150:
+            return JsonResponse({"full_name": ["Enter a full name of at most 150 characters."]}, status=400)
+        if not isinstance(email, str):
+            return JsonResponse({"email": ["Enter a valid email address."]}, status=400)
+        email = email.strip().lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"email": ["Enter a valid email address."]}, status=400)
+        if len(email) > 150:
+            return JsonResponse({"email": ["Use an email address of at most 150 characters."]}, status=400)
+        if email != user.email.lower():
+            password = data.get("current_password", "")
+            if not isinstance(password, str) or not user.check_password(password):
+                return JsonResponse({"current_password": ["Enter your current password to change your email."]}, status=400)
+            if get_user_model().objects.exclude(pk=user.pk).filter(Q(email__iexact=email) | Q(username__iexact=email)).exists():
+                return JsonResponse({"email": ["An account with this email already exists."]}, status=400)
+            user.email = email
+            user.username = email
+        parts = name.strip().split(maxsplit=1)
+        user.first_name, user.last_name = parts[0], parts[1] if len(parts) > 1 else ""
+        try:
+            with transaction.atomic():
+                user.save(update_fields=["first_name", "last_name", "email", "username"])
+        except IntegrityError:
+            return JsonResponse({"email": ["An account with this email already exists."]}, status=400)
+    return JsonResponse(user_payload(user))

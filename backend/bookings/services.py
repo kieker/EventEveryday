@@ -77,6 +77,9 @@ def expire_booking_if_needed(booking):
         booking.status == Booking.Status.PENDING_PAYMENT
         and booking.expires_at <= timezone.now()
     ):
-        booking.status = Booking.Status.EXPIRED
-        booking.save(update_fields=["status", "updated_at"])
+        Booking.objects.filter(
+            pk=booking.pk, status=Booking.Status.PENDING_PAYMENT,
+            expires_at__lte=timezone.now(),
+        ).update(status=Booking.Status.EXPIRED, updated_at=timezone.now())
+        booking.refresh_from_db()
     return booking

@@ -6,3 +6,4 @@ psycopg[binary]==3.3.2
 gunicorn==25.1.0
 Pillow==12.3.0
 django-anymail[resend]==15.1
+redis>=5.2,<7

@@ -19,6 +19,7 @@ export function SiteHeader({ showEvents = true }: { showEvents?: boolean }) {
       <SiteLogo />
       <div className="site-nav-links">
         {showEvents && <Link href="/#events">Events</Link>}
+        <Link href="/calendar">Calendar</Link>
         {!loading && customer ? (
           <>
             <Link href="/account">My bookings</Link>

@@ -29,10 +29,17 @@ class BookingAdmin(admin.ModelAdmin):
         "contact_email",
         "attendees__full_name",
         "event__title",
+        "event_title",
     )
     readonly_fields = (
         "reference",
         "access_token_hash",
+        "event_title",
+        "event_venue_name",
+        "event_venue_address",
+        "event_timezone",
+        "event_start_at",
+        "event_end_at",
         "unit_price",
         "total",
         "currency",
@@ -66,13 +73,16 @@ class BookingAdmin(admin.ModelAdmin):
                 "Total",
                 "Currency",
                 "Created",
+                "Payment reference",
+                "Confirmation time",
             ]
         )
-        for booking in queryset.select_related("event").prefetch_related("attendees"):
+        for booking in queryset.select_related("event", "payment").prefetch_related("attendees"):
+            payment = getattr(booking, "payment", None)
             writer.writerow(
                 [
                     booking.reference,
-                    booking.event.title,
+                    booking.event_title,
                     booking.contact_name,
                     booking.contact_email,
                     booking.contact_phone,
@@ -82,6 +92,10 @@ class BookingAdmin(admin.ModelAdmin):
                     booking.total,
                     booking.currency,
                     booking.created_at.isoformat(),
+                    payment.provider_transaction_reference if payment else "",
+                    payment.paid_at.isoformat()
+                    if booking.status == Booking.Status.CONFIRMED and payment and payment.paid_at
+                    else "",
                 ]
             )
         return response
@@ -94,11 +108,10 @@ class AttendeeAdmin(admin.ModelAdmin):
     search_fields = ("full_name", "booking__reference", "booking__contact_email")
     autocomplete_fields = ("booking",)
 
-    @admin.display(description="Event", ordering="booking__event__title")
+    @admin.display(description="Event", ordering="booking__event_title")
     def event_title(self, obj):
-        return obj.booking.event.title
+        return obj.booking.event_title
 
     @admin.display(description="Status", ordering="booking__status")
     def booking_status(self, obj):
         return obj.booking.get_status_display()
-

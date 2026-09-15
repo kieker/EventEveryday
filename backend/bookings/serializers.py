@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from django.db import transaction
+from django.utils import timezone
 
 from events.models import Event
 from events.serializers import EventListSerializer
@@ -15,7 +17,31 @@ class AttendeeSerializer(serializers.ModelSerializer):
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    event = EventListSerializer(read_only=True)
+    event = serializers.SerializerMethodField()
+    payment_received = serializers.SerializerMethodField()
+    reconciliation_required = serializers.SerializerMethodField()
+
+    def get_payment_received(self, obj):
+        payment = getattr(obj, "payment", None)
+        return bool(payment and payment.status == "complete")
+
+    def get_reconciliation_required(self, obj):
+        return self.get_payment_received(obj) and obj.status != Booking.Status.CONFIRMED
+
+    def get_event(self, obj):
+        data = EventListSerializer(obj.event, context=self.context).data
+        for field in ("title", "venue_name", "venue_address", "timezone"):
+            data[field] = getattr(obj, f"event_{field}")
+        for field in ("start_at", "end_at"):
+            data[field] = serializers.DateTimeField().to_representation(
+                getattr(obj, f"event_{field}")
+            )
+        data["price"] = serializers.DecimalField(
+            max_digits=10, decimal_places=2
+        ).to_representation(obj.unit_price)
+        data["currency"] = obj.currency
+        return data
+
     attendees = AttendeeSerializer(many=True, read_only=True)
 
     class Meta:
@@ -31,6 +57,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "total",
             "currency",
             "status",
+            "payment_received",
+            "reconciliation_required",
             "expires_at",
             "created_at",
             "attendees",
@@ -79,6 +107,11 @@ class BookingCreateSerializer(serializers.Serializer):
         return data
 
 
+class BookingEditConflict(APIException):
+    status_code = 409
+    default_detail = "Only bookings awaiting payment can be edited."
+
+
 class BookingUpdateSerializer(serializers.ModelSerializer):
     attendees = AttendeeSerializer(many=True)
 
@@ -98,6 +131,10 @@ class BookingUpdateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        instance = Booking.objects.select_for_update().get(pk=instance.pk)
+        if (instance.status != Booking.Status.PENDING_PAYMENT
+                or instance.expires_at <= timezone.now()):
+            raise BookingEditConflict()
         attendees = validated_data.pop("attendees")
         instance.contact_name = validated_data["contact_name"].strip()
         instance.contact_email = validated_data["contact_email"].strip().lower()

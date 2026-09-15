@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "core.rate_limits.RateLimitMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -113,6 +114,30 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+}
+
+# Use shared Redis counters for every worker in deployed environments.
+RATE_LIMIT_REDIS_URL = os.environ.get("RATE_LIMIT_REDIS_URL", "")
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "rate_limits": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache"
+        if RATE_LIMIT_REDIS_URL else "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": RATE_LIMIT_REDIS_URL or "eventeveryday-rate-limits",
+        "KEY_PREFIX": "eventeveryday",
+    },
+}
+# Only trust forwarded addresses when the immediate peer is a trusted proxy.
+RATE_LIMIT_TRUSTED_PROXIES = [
+    value.strip() for value in os.environ.get("RATE_LIMIT_TRUSTED_PROXIES", "").split(",")
+    if value.strip()
+]
+RATE_LIMITS = {
+    "api": (120, 60),
+    "login": (10, 300),
+    "register": (5, 3600),
+    "booking_write": (20, 300),
+    "checkout": (10, 60),
 }
 
 PAYFAST_SANDBOX = os.environ.get("PAYFAST_SANDBOX", "true").lower() in {

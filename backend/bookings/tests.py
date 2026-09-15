@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -65,6 +65,44 @@ class BookingCreationTests(TestCase):
             ["First Attendee", "Second Attendee"],
         )
 
+    def test_event_snapshot_survives_event_edits_and_booking_updates(self):
+        from .serializers import BookingSerializer
+
+        event = make_event()
+        original = {field: getattr(event, field) for field in (
+            "title", "venue_name", "venue_address", "timezone", "start_at", "end_at"
+        )}
+        booking, token = create_guest_booking(
+            event=event, contact_name="Guest", contact_email="guest@example.com",
+            contact_phone="", attendees=["Guest"],
+        )
+        event.title = "Renamed event"
+        event.venue_name = "New venue"
+        event.venue_address = "New address"
+        event.timezone = "Europe/London"
+        event.start_at += timedelta(days=2)
+        event.end_at += timedelta(days=2)
+        event.price = Decimal("999.00")
+        event.save()
+        response = self.client.patch(
+            reverse("bookings:detail", args=[booking.reference]),
+            data={"contact_name": "Updated Guest", "contact_email": "guest@example.com",
+                  "contact_phone": "", "attendees": [{"full_name": "Updated Guest"}]},
+            content_type="application/json", HTTP_X_BOOKING_TOKEN=token,
+        )
+        self.assertEqual(response.status_code, 200)
+        booking.refresh_from_db()
+        for field, value in original.items():
+            self.assertEqual(getattr(booking, f"event_{field}"), value)
+        data = BookingSerializer(booking).data["event"]
+        for field in ("title", "venue_name", "venue_address", "timezone"):
+            self.assertEqual(data[field], original[field])
+        from rest_framework.fields import DateTimeField
+        for field in ("start_at", "end_at"):
+            self.assertEqual(data[field], DateTimeField().to_representation(original[field]))
+        self.assertEqual(data["price"], "275.00")
+        self.assertEqual(response.json()["event"], data)
+
     def test_expired_hold_is_released_before_new_booking(self):
         event = make_event(capacity=1)
         first, _ = create_guest_booking(
@@ -91,6 +129,7 @@ class BookingCreationTests(TestCase):
 
 
 class BookingApiTests(TestCase):
+    @override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:3000"])
     def test_cors_preflight_allows_booking_token_header(self):
         response = self.client.options(
             reverse("bookings:detail", args=["EVT-TEST"]),

@@ -21,9 +21,9 @@ export type EventDetail = EventSummary & {
   venue_address: string;
 };
 
-export async function getEvents(): Promise<EventSummary[]> {
+export async function getEvents(query = ""): Promise<EventSummary[]> {
   try {
-    const response = await fetch(`${API_URL}/events/`, { cache: "no-store" });
+    const response = await fetch(`${API_URL}/events/?q=${encodeURIComponent(query)}`, { cache: "no-store" });
     if (!response.ok) return [];
     return response.json();
   } catch {
@@ -46,6 +46,7 @@ export async function getEvent(slug: string): Promise<EventDetail | null> {
 export function formatEventDate(value: string) {
   return new Intl.DateTimeFormat("en-ZA", {
     weekday: "short",
+    timeZone: "Africa/Johannesburg",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -55,6 +56,8 @@ export function formatEventDate(value: string) {
 export function formatEventTime(value: string) {
   return new Intl.DateTimeFormat("en-ZA", {
     hour: "2-digit",
+    timeZone: "Africa/Johannesburg",
+    hourCycle: "h23",
     minute: "2-digit",
   }).format(new Date(value));
 }

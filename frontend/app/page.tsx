@@ -2,9 +2,12 @@ import { EventCard } from "@/components/event-card";
 import { HomeActions } from "@/components/home-actions";
 import { SiteHeader } from "@/components/site-header";
 import { getEvents } from "@/lib/events";
+import Link from "next/link";
 
-export default async function Home() {
-  const events = await getEvents();
+export default async function Home({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const params = await searchParams;
+  const query = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
+  const events = await getEvents(query);
 
   return (
     <main>
@@ -27,14 +30,18 @@ export default async function Home() {
           </div>
           <p>{events.length ? `${events.length} events available` : "New events coming soon"}</p>
         </div>
+        <form action="/#events" className="event-search" role="search">
+          <label htmlFor="event-search">Find an event</label>
+          <div><input id="event-search" type="search" name="q" defaultValue={query} placeholder="Search events, venues or cities" maxLength={200} /><button type="submit">Search</button>{query && <Link href="/#events">Clear</Link>}</div>
+        </form>
         {events.length ? (
           <div className="event-grid">
             {events.map((event) => <EventCard event={event} key={event.slug} />)}
           </div>
         ) : (
           <div className="empty-state">
-            <p>There are no published events yet.</p>
-            <span>Administrators can publish the first event from the dashboard.</span>
+            <p>{query ? `No events match “${query}”.` : "New events coming soon."}</p>
+            <span>{query ? "Try another event, venue or city." : "Check back soon for upcoming events."}</span>
           </div>
         )}
       </section>

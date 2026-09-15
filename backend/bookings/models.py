@@ -38,6 +38,12 @@ class Booking(models.Model):
         on_delete=models.PROTECT,
         related_name="bookings",
     )
+    event_title = models.CharField(max_length=180, editable=False)
+    event_venue_name = models.CharField(max_length=180, editable=False)
+    event_venue_address = models.TextField(editable=False)
+    event_timezone = models.CharField(max_length=64, editable=False)
+    event_start_at = models.DateTimeField(editable=False)
+    event_end_at = models.DateTimeField(editable=False)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -84,7 +90,13 @@ class Booking(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.reference} — {self.event.title}"
+        return f"{self.reference} — {self.event_title}"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            for field in ("title", "venue_name", "venue_address", "timezone", "start_at", "end_at"):
+                setattr(self, f"event_{field}", getattr(self.event, field))
+        super().save(*args, **kwargs)
 
     def token_matches(self, token):
         if not token:

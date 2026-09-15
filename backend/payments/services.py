@@ -14,6 +14,7 @@ from django.utils import timezone
 
 from bookings.models import Booking
 from core.emails import send_booking_confirmed_email
+from events.models import Event
 
 from .models import Payment, PaymentWebhookEvent
 
@@ -125,7 +126,7 @@ def build_checkout(booking):
         "cell_number": booking.contact_phone,
         "m_payment_id": booking.reference,
         "amount": f"{booking.total:.2f}",
-        "item_name": booking.event.title[:100],
+        "item_name": booking.event_title[:100],
         "item_description": f"{booking.quantity} ticket(s) — {booking.reference}"[:255],
         "currency": booking.currency,
     }
@@ -133,7 +134,7 @@ def build_checkout(booking):
         (field, values[field]) for field in PAYFAST_FIELD_ORDER if field in values and values[field]
     )
     ordered["signature"] = generate_signature(ordered, settings.PAYFAST_PASSPHRASE)
-    Payment.objects.update_or_create(
+    Payment.objects.get_or_create(
         booking=booking,
         defaults={
             "amount": booking.total,
@@ -212,8 +213,9 @@ def confirm_with_payfast(data):
 @transaction.atomic
 def process_notification(data, remote_ip):
     digest = payload_digest(data)
-    existing = PaymentWebhookEvent.objects.select_for_update().filter(payload_digest=digest).first()
-    if existing and existing.accepted:
+    existing, _ = PaymentWebhookEvent.objects.get_or_create(payload_digest=digest)
+    existing = PaymentWebhookEvent.objects.select_for_update().get(pk=existing.pk)
+    if existing.accepted:
         return existing
 
     reference = data.get("m_payment_id", "")
@@ -231,7 +233,10 @@ def process_notification(data, remote_ip):
     event.rejection_reason = ""
 
     try:
-        booking = Booking.objects.select_for_update().select_related("event").get(reference=reference)
+        event_id = Booking.objects.values_list("event_id", flat=True).get(reference=reference)
+        # Match reservation creation's lock order: event, then booking.
+        Event.objects.select_for_update().get(pk=event_id)
+        booking = Booking.objects.select_for_update().get(reference=reference)
     except Booking.DoesNotExist:
         event.rejection_reason = "Unknown booking reference."
         event.save()
@@ -261,14 +266,27 @@ def process_notification(data, remote_ip):
         event.save()
         return event
 
-    payment.provider_transaction_reference = provider_reference
+    if payment.status != Payment.Status.COMPLETE:
+        payment.provider_transaction_reference = provider_reference
     if payment_status == "COMPLETE":
         was_confirmed = booking.status == Booking.Status.CONFIRMED
         payment.status = Payment.Status.COMPLETE
-        payment.paid_at = timezone.now()
-        booking.status = Booking.Status.CONFIRMED
-        if not was_confirmed:
+        payment.paid_at = payment.paid_at or timezone.now()
+        live_hold = (
+            booking.status == Booking.Status.PENDING_PAYMENT
+            and booking.expires_at > timezone.now()
+        )
+        if live_hold:
+            booking.status = Booking.Status.CONFIRMED
             transaction.on_commit(lambda: send_booking_confirmed_email(booking))
+        elif not was_confirmed:
+            if booking.status == Booking.Status.PENDING_PAYMENT:
+                booking.status = Booking.Status.EXPIRED
+            # Acknowledge receipt of money without allocating released tickets.
+            event.rejection_reason = "Payment received without an active reservation; manual refund/reconciliation required."
+    elif payment.status == Payment.Status.COMPLETE:
+        # Out-of-order notifications must not undo a successful payment.
+        pass
     elif payment_status == "FAILED":
         payment.status = Payment.Status.FAILED
         if booking.status != Booking.Status.CONFIRMED:

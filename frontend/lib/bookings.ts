@@ -13,6 +13,8 @@ export type Booking = {
   currency: "ZAR";
   status: "pending_payment" | "confirmed" | "payment_failed" | "expired" | "cancelled";
   expires_at: string;
+  payment_received: boolean;
+  reconciliation_required: boolean;
   created_at: string;
   attendees: { full_name: string }[];
 };

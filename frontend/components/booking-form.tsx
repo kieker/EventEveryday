@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createBooking } from "@/lib/bookings";
@@ -24,11 +24,34 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
   const [contactPhone, setContactPhone] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const [canStick, setCanStick] = useState(false);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    function checkFit() {
+      setCanStick(panel!.getBoundingClientRect().height + 32 <= window.innerHeight);
+    }
+
+    const observer = new ResizeObserver(checkFit);
+    observer.observe(panel);
+    window.addEventListener("resize", checkFit);
+    checkFit();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", checkFit);
+    };
+  }, []);
 
   function changeQuantity(nextQuantity: number) {
-    setQuantity(nextQuantity);
+    const boundedQuantity = Number.isFinite(nextQuantity)
+      ? Math.min(maximum, Math.max(1, Math.trunc(nextQuantity)))
+      : 1;
+    setQuantity(boundedQuantity);
     setAttendees((current) =>
-      Array.from({ length: nextQuantity }, (_, index) => current[index] ?? ""),
+      Array.from({ length: boundedQuantity }, (_, index) => current[index] ?? ""),
     );
   }
 
@@ -69,23 +92,32 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
   }
 
   return (
-    <aside className="booking-panel booking-form-panel">
+    <aside ref={panelRef} className={`booking-panel booking-form-panel${canStick ? " can-stick" : ""}`}>
       <div className="booking-price-line">
         <span>Tickets</span>
         <strong>{formatPrice(price)} each</strong>
       </div>
       <form onSubmit={submit}>
-        <label>
-          Number of tickets
-          <select
-            onChange={(event) => changeQuantity(Number(event.target.value))}
-            value={quantity}
-          >
-            {Array.from({ length: maximum }, (_, index) => index + 1).map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
-        </label>
+        <div className="booking-quantity-field">
+          <label htmlFor="booking-quantity">Number of tickets</label>
+          <div className="booking-quantity-control">
+            <button type="button" aria-label="Remove one ticket" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg>
+            </button>
+            <input
+              id="booking-quantity"
+              type="number"
+              min={1}
+              max={maximum}
+              step={1}
+              onChange={(event) => changeQuantity(Number(event.target.value))}
+              value={quantity}
+            />
+            <button type="button" aria-label="Add one ticket" disabled={quantity >= maximum} onClick={() => changeQuantity(quantity + 1)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+          </div>
+        </div>
 
         <div className="booking-total">
           <span>Total</span>
@@ -102,11 +134,8 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
           ))}
         </fieldset>
 
-        <details className="booking-details" open>
-          <summary>
-            <span>Booking contact</span>
-            <span className="booking-chevron" aria-hidden="true" />
-          </summary>
+        <section className="booking-details" aria-labelledby="booking-contact-heading">
+          <h2 id="booking-contact-heading">Booking contact</h2>
           <div className="booking-details-content">
             {customer && <p className="signed-in-note">Booking as <strong>{customer.email}</strong>. This reservation will be saved to your account.</p>}
             <fieldset>
@@ -130,7 +159,7 @@ export function BookingForm({ eventSlug, price, availableCapacity }: BookingForm
             </button>
             <small>Your reservation is held for 15 minutes before payment.</small>
           </div>
-        </details>
+        </section>
       </form>
     </aside>
   );
