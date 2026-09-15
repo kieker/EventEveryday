@@ -95,7 +95,22 @@ The [GitHub Actions workflow](.github/workflows/ci-cd.yml) checks Django against
    ssh-keygen -t ed25519 -C eventeveryday-github-actions -f $deployKeyPath
    ```
 
-   Use an empty passphrase so the unattended workflow can load it. Add the **public** key (`eventeveryday_github_actions.pub`) as one line in `/home/eventeveryday-deploy/.ssh/authorized_keys` on the VM, owned by `eventeveryday-deploy` with mode 600. Test `ssh -i ~/.ssh/eventeveryday_github_actions eventeveryday-deploy@84.12.83.196` (or the Windows key path) before configuring GitHub. Never put the private key in the repository or on the VM.
+   Use an empty passphrase so the unattended workflow can load it. Copy **only the public key** from PowerShell to the VM using your existing `ubuntu` login (add `-i` with your usual Oracle login key if needed):
+
+   ```powershell
+   scp "${deployKeyPath}.pub" ubuntu@84.12.83.196:/tmp/eventeveryday_github_actions.pub
+   ```
+
+   On the VM, logged in as `ubuntu`, append that public key to the deployment account's authorized keys without replacing existing entries:
+
+   ```bash
+   sudo install -d -m 700 -o eventeveryday-deploy -g eventeveryday-deploy /home/eventeveryday-deploy/.ssh
+   sudo tee -a /home/eventeveryday-deploy/.ssh/authorized_keys < /tmp/eventeveryday_github_actions.pub > /dev/null
+   sudo chown eventeveryday-deploy:eventeveryday-deploy /home/eventeveryday-deploy/.ssh/authorized_keys
+   sudo chmod 600 /home/eventeveryday-deploy/.ssh/authorized_keys
+   ```
+
+   Back in PowerShell, test `ssh -i $deployKeyPath eventeveryday-deploy@84.12.83.196`. If the account does not exist yet, complete step 1 first. Never put the private key in the repository or on the VM.
 4. Commit and push `.github/workflows/ci-cd.yml` with the application changes. GitHub's Actions page currently offers starter templates because this workflow is still only in the local workspace; no template needs to be selected. Once pushed to `main`, **CI / CD** appears in Actions and runs the backend and frontend checks. Deployment stays skipped until the VPS variables below exist.
 5. In the GitHub repository, open **Settings → Environments → New environment** and create `production` (the workflow uses this name for the deployment target even while payments remain sandboxed). In that environment, under **Environment secrets**, add `VPS_SSH_KEY` with the complete private key generated above, including its BEGIN/END lines, and `VPS_KNOWN_HOSTS` with the VM's verified SSH host-key line. Verify the host-key fingerprint out of band before saving it; do not obtain it blindly during deployment. Do not paste the private key into issues, commits, or chat. Set environment protection rules if deployment should require review.
 6. Open **Settings → Secrets and variables → Actions → Variables** and add repository variables `VPS_HOST=84.12.83.196`, `VPS_USER=eventeveryday-deploy`, and `VPS_DEPLOY_PATH=/opt/apps/EventEveryday`. Add these after the environment secrets: once all three variables exist, pushes to `main` can run the deploy job. From **Actions → CI / CD**, use **Run workflow** on `main` for the first deployment if no new push is pending.
