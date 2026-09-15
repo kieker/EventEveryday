@@ -11,6 +11,13 @@ SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY", "unsafe-development-key-change-before-deployment"
 )
 DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in {"1", "true", "yes"}
+BEHIND_HTTPS_PROXY = os.environ.get("DJANGO_BEHIND_HTTPS_PROXY", "false").lower() in {
+    "1", "true", "yes"
+}
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if BEHIND_HTTPS_PROXY else None
+SESSION_COOKIE_SECURE = BEHIND_HTTPS_PROXY
+CSRF_COOKIE_SECURE = BEHIND_HTTPS_PROXY
+SECURE_SSL_REDIRECT = BEHIND_HTTPS_PROXY
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")

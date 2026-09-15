@@ -67,6 +67,42 @@ The optional Caddy overlay routes `/api/`, `/admin/`, `/static/`, and `/media/` 
 
 This overlay puts HTTPS in front of the current development containers. Before accepting real bookings or payments, switch to production server processes, disable Django debug mode, configure production secrets and email, and provide durable storage for uploaded media.
 
+## CI and staging deployment to the Oracle VM
+
+The [GitHub Actions workflow](.github/workflows/ci-cd.yml) checks Django against PostgreSQL and Redis, and runs frontend lint, typecheck, and build on pull requests and pushes to `main`. After both jobs pass on `main`, it syncs the repository over SSH and runs `scripts/deploy-vps.sh` using [the production Compose stack](compose.production.yaml). Here, "production" describes the server processes and HTTPS configuration; with `PAYFAST_SANDBOX=true` and email sent to Mailpit, the public site is still staging and must not be used for real paid bookings. A manual workflow dispatch on `main` also deploys. The server's `.env` and named Docker volumes are kept on the VM; deployment does not sync secrets or uploaded files.
+
+1. Docker Engine and Compose are already installed on the Oracle VM. Check `command -v bash` and `command -v rsync`; install `rsync` with `sudo apt install rsync` if it is missing. The project already runs from `/opt/apps/EventEveryday`, so keep that directory. Create a dedicated deployment account (the VM currently uses `ubuntu` for administration):
+
+   ```bash
+   sudo adduser --disabled-password --gecos "" eventeveryday-deploy
+   sudo usermod -aG docker eventeveryday-deploy
+   sudo -u eventeveryday-deploy mkdir -p /home/eventeveryday-deploy/.ssh
+   sudo chmod 700 /home/eventeveryday-deploy/.ssh
+   ```
+
+   Check the current ownership with `ls -ld /opt/apps/EventEveryday`. The deployment account needs write access to this directory and read access to its `.env`. After reviewing any VM-only code changes and the running deployment, transfer ownership with `sudo chown -R eventeveryday-deploy:eventeveryday-deploy /opt/apps/EventEveryday`. Docker group membership grants root-equivalent access, so keep the deployment key private. The VM's DNS for `eventeveryday.kiekerweb.co.za` points to `84.12.83.196`; allow inbound TCP 80 and 443 in OCI and the VM firewall.
+2. Keep the working `/opt/apps/EventEveryday/.env` on the VM. Compare it with [.env.production.example](.env.production.example) and add or update only the required values; do not replace its existing PostgreSQL password or `DATABASE_URL` if the current database volume is in use. Set a long random Django secret, keep `PAYFAST_SANDBOX=true` for staging, and keep the file private (`chmod 600 .env`). The production Compose stack binds only Caddy to public ports.
+3. Generate a new Ed25519 SSH key pair dedicated to GitHub Actions on your own computer, outside the project folder:
+
+   ```bash
+   ssh-keygen -t ed25519 -C eventeveryday-github-actions -f ~/.ssh/eventeveryday_github_actions
+   ```
+
+   On Windows PowerShell, run these as two separate lines:
+
+   ```powershell
+   $deployKeyPath = Join-Path $env:USERPROFILE '.ssh\eventeveryday_github_actions'
+   ssh-keygen -t ed25519 -C eventeveryday-github-actions -f $deployKeyPath
+   ```
+
+   Use an empty passphrase so the unattended workflow can load it. Add the **public** key (`eventeveryday_github_actions.pub`) as one line in `/home/eventeveryday-deploy/.ssh/authorized_keys` on the VM, owned by `eventeveryday-deploy` with mode 600. Test `ssh -i ~/.ssh/eventeveryday_github_actions eventeveryday-deploy@84.12.83.196` (or the Windows key path) before configuring GitHub. Never put the private key in the repository or on the VM.
+4. Commit and push `.github/workflows/ci-cd.yml` with the application changes. GitHub's Actions page currently offers starter templates because this workflow is still only in the local workspace; no template needs to be selected. Once pushed to `main`, **CI / CD** appears in Actions and runs the backend and frontend checks. Deployment stays skipped until the VPS variables below exist.
+5. In the GitHub repository, open **Settings → Environments → New environment** and create `production` (the workflow uses this name for the deployment target even while payments remain sandboxed). In that environment, under **Environment secrets**, add `VPS_SSH_KEY` with the complete private key generated above, including its BEGIN/END lines, and `VPS_KNOWN_HOSTS` with the VM's verified SSH host-key line. Verify the host-key fingerprint out of band before saving it; do not obtain it blindly during deployment. Do not paste the private key into issues, commits, or chat. Set environment protection rules if deployment should require review.
+6. Open **Settings → Secrets and variables → Actions → Variables** and add repository variables `VPS_HOST=84.12.83.196`, `VPS_USER=eventeveryday-deploy`, and `VPS_DEPLOY_PATH=/opt/apps/EventEveryday`. Add these after the environment secrets: once all three variables exist, pushes to `main` can run the deploy job. From **Actions → CI / CD**, use **Run workflow** on `main` for the first deployment if no new push is pending.
+7. Check the Actions job, then visit `https://eventeveryday.kiekerweb.co.za/` and `https://eventeveryday.kiekerweb.co.za/api/health/`. The VM keeps the PostgreSQL database, Caddy certificates, static files, and uploaded media in named volumes. Back up the database and media volumes separately. If you previously uploaded files using the development bind mount, copy them into the production `media_data` volume before switching stacks.
+
+This is a single-VM deployment with in-place database migrations. Make database backups before releases that change schemas. The VM stack uses Gunicorn, the Next.js standalone server, Django HTTPS cookies, and Caddy; the development Compose file remains for local work.
+
 ## Calendars
 
 Open `/calendar` for month and list views in South African time. Signed-in customers can select their confirmed bookings; staff with event viewing permission can select all events and open Django event management. The admin list view also links to attendees and the existing CSV export action. The API at `/api/events/calendar/?month=YYYY-MM&scope=public` supports `public`, `mine`, and `admin` scopes with server-side access checks.

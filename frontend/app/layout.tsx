@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Lobster } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 
 import { AuthProvider } from "@/components/auth-provider";
 
 import "./styles.css";
 
-const logoFont = Lobster({
+const logoFont = localFont({
+  src: "./fonts/Lobster-Regular.ttf",
   display: "swap",
-  subsets: ["latin"],
   variable: "--font-logo",
   weight: "400",
 });
