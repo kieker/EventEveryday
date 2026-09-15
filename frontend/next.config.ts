@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: process.env.SITE_DOMAIN ? [process.env.SITE_DOMAIN] : [],
   images: {
     remotePatterns: [
       {
