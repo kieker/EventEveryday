@@ -84,7 +84,7 @@ services:
     build:
       context: ./frontend
       target: development
-    command: npm run dev
+    command: sh ./scripts/start-dev.sh
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
       INTERNAL_API_URL: ${INTERNAL_API_URL:-http://backend:8000/api}

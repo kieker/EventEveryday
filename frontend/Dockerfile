@@ -1,7 +1,7 @@
 FROM node:24-alpine AS base
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci && sha256sum package-lock.json | cut -d ' ' -f1 > node_modules/.eventeveryday-lock-hash
 COPY . .
 
 FROM base AS development

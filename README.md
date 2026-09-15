@@ -118,6 +118,8 @@ The [GitHub Actions workflow](.github/workflows/ci-cd.yml) checks Django against
 
 This is a single-VM deployment with in-place database migrations. Make database backups before releases that change schemas. The VM stack uses Gunicorn, the Next.js standalone server, Django HTTPS cookies, and Caddy; the development Compose file remains for local work.
 
+The development frontend keeps `node_modules` in a Docker volume. Its startup script checks that volume against `package-lock.json` and runs `npm ci` when the lockfile changes or a declared package is missing. After pulling a commit that changes frontend dependencies while the development stack is already running, restart the frontend with `docker compose -f compose.yaml -f compose.caddy.yaml restart frontend` to run that check. Add dependencies on your development machine and commit both `frontend/package.json` and `frontend/package-lock.json`; avoid using `npm install` only on the VM, which would leave its checkout different from GitHub.
+
 ## Calendars
 
 Open `/calendar` for month and list views in South African time. Signed-in customers can select their confirmed bookings; staff with event viewing permission can select all events and open Django event management. The admin list view also links to attendees and the existing CSV export action. The API at `/api/events/calendar/?month=YYYY-MM&scope=public` supports `public`, `mine`, and `admin` scopes with server-side access checks.
