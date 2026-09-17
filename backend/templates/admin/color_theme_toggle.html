@@ -1,0 +1,9 @@
+{% load i18n %}
+<button type="button" class="theme-toggle">
+  <span class="visually-hidden theme-label-when-auto">{% translate 'Toggle theme (current theme: auto)' %}</span>
+  <span class="visually-hidden theme-label-when-light">{% translate 'Toggle theme (current theme: light)' %}</span>
+  <span class="visually-hidden theme-label-when-dark">{% translate 'Toggle theme (current theme: dark)' %}</span>
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="theme-icon-when-auto"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18Z" fill="currentColor" stroke="none"/></svg>
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="theme-icon-when-dark"><path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/></svg>
+  <svg viewBox="0 0 24 24" aria-hidden="true" class="theme-icon-when-light"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+</button>

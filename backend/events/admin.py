@@ -23,6 +23,7 @@ class EventAdmin(admin.ModelAdmin):
         (
             "Event",
             {
+                "classes": ("collapse", "event-section", "section-event"),
                 "fields": (
                     "title",
                     "slug",
@@ -34,12 +35,15 @@ class EventAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Schedule", {"fields": ("start_at", "end_at", "timezone")}),
-        ("Venue", {"fields": ("venue_name", "venue_address")}),
-        ("Tickets", {"fields": ("capacity", "price")}),
-        ("Publishing", {"fields": ("status", "published_at")}),
-        ("Audit", {"fields": ("created_at", "updated_at"), "classes": ("collapse",)}),
+        ("Schedule", {"classes": ("collapse", "event-section", "section-schedule"), "fields": ("start_at", "end_at", "timezone")}),
+        ("Venue", {"classes": ("collapse", "event-section", "section-venue"), "fields": ("venue_name", "venue_address")}),
+        ("Tickets", {"classes": ("collapse", "event-section", "section-tickets"), "fields": ("capacity", "price")}),
+        ("Publishing", {"classes": ("collapse", "event-section", "section-publishing"), "fields": ("status", "published_at")}),
+        ("Audit", {"fields": ("created_at", "updated_at"), "classes": ("collapse", "event-section", "section-audit")}),
     )
+
+    class Media:
+        js = ("admin/js/event-sections.js",)
 
     @admin.display(description="Price", ordering="price")
     def formatted_price(self, obj):

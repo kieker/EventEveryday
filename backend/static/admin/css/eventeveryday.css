@@ -1975,6 +1975,54 @@ a.deletelink::before {
   background-image: none;
 }
 
+/* Keep filled actions on the same sizing model as submit inputs. Django's
+   form styles load after this stylesheet, so scope these overrides to body. */
+body .object-tools a:any-link,
+body.change-list .object-tools a.addlink,
+body a.event-add-button,
+body .submit-row a.deletelink,
+body .submit-row a.closelink {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-height: 38px;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-transform: none;
+  background-image: none;
+  box-shadow: none;
+}
+
+body .object-tools a.addlink::before,
+body .object-tools a.viewsitelink::before,
+body .submit-row a.deletelink::before {
+  position: static;
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  transform: none;
+}
+
+body:not(.login):not(.popup) #user-tools > .change-password-link,
+body:not(.login):not(.popup) #logout-form button {
+  box-sizing: border-box;
+  min-height: 38px;
+}
+
+body .object-tools a:focus-visible,
+body .submit-row a:focus-visible,
+body .event-add-button:focus-visible {
+  outline: 2px solid var(--link-fg);
+  outline-offset: 3px;
+}
+
 .object-tools a.addlink::before,
 .object-tools a.viewsitelink::before {
   left: 13px;
@@ -1982,12 +2030,12 @@ a.deletelink::before {
   height: 14px;
 }
 
-.datetimeshortcuts .clock-icon,
-.datetimeshortcuts .date-icon {
+body .datetimeshortcuts .clock-icon,
+body .datetimeshortcuts .date-icon {
   width: 24px;
   height: 24px;
   border-radius: 7px;
-  background: color-mix(in srgb, var(--selected-bg) 75%, transparent);
+  background: currentColor;
   color: var(--link-fg);
   -webkit-mask-position: center;
   -webkit-mask-repeat: no-repeat;
@@ -2488,3 +2536,111 @@ html[data-theme="dark"] .login-introduction > p:last-child {
     font-size: 36px;
   }
 }
+/* Header controls, bulk actions, and event sections. */
+body:not(.login):not(.popup) #user-tools > a.change-password-link,
+body:not(.login):not(.popup) #user-tools > a.change-password-link:hover {
+  border: 0;
+  background: transparent;
+}
+body:not(.login):not(.popup) .theme-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--header-link-color);
+}
+body #changelist .actions {
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+  background: var(--selected-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+body #changelist .actions label {
+  color: var(--body-fg);
+  font-weight: 650;
+}
+body #changelist .actions select {
+  box-sizing: border-box;
+  height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13px;
+}
+body #changelist .actions button.button {
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--button-bg);
+  color: var(--button-fg);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+}
+body #changelist .actions button.button:hover {
+  background: var(--button-hover-bg);
+}
+body #changelist .actions button.button:focus-visible,
+body fieldset.module.event-section summary:focus-visible {
+  outline: 2px solid var(--link-fg);
+  outline-offset: 3px;
+}
+body #changelist .actions .action-counter {
+  margin-inline-start: auto;
+  font-size: 12px;
+}
+body fieldset.module.event-section {
+  margin-bottom: 20px;
+}
+body fieldset.module.event-section summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--darkened-bg);
+  cursor: pointer;
+  list-style: none;
+}
+body fieldset.module.event-section summary::-webkit-details-marker { display: none; }
+body fieldset.module.event-section .fieldset-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--body-fg);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+body fieldset.module.event-section .fieldset-heading::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  background: var(--link-fg);
+  mask: var(--section-icon, var(--admin-icon-edit)) center / contain no-repeat;
+}
+body fieldset.module.event-section summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--body-quiet-color);
+  border-bottom: 2px solid var(--body-quiet-color);
+  transform: rotate(-45deg);
+}
+body fieldset.module.event-section details[open] > summary::after { transform: rotate(45deg); }
+.section-schedule { --section-icon: var(--admin-icon-calendar); }
+.section-audit { --section-icon: var(--admin-icon-clock); }
+.section-publishing { --section-icon: var(--admin-icon-view); }
+.section-venue { --section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8'%3E%3Cpath d='M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E"); }
+.section-tickets { --section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8'%3E%3Cpath d='M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4V5Zm12 0v14'/%3E%3C/svg%3E"); }
+
