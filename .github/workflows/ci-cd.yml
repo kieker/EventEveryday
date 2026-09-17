@@ -74,7 +74,7 @@ jobs:
         working-directory: frontend
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.VPS_HOST != '' && vars.VPS_USER != '' && vars.VPS_DEPLOY_PATH != ''
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [backend, frontend]
     runs-on: ubuntu-latest
     environment: production
@@ -83,6 +83,19 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+      - name: Verify deployment configuration
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          : "${VPS_HOST:?Set the VPS_HOST repository variable}"
+          : "${VPS_USER:?Set the VPS_USER repository variable}"
+          : "${VPS_DEPLOY_PATH:?Set the VPS_DEPLOY_PATH repository variable}"
+          : "${VPS_SSH_KEY:?Set the VPS_SSH_KEY production environment secret}"
+          : "${VPS_KNOWN_HOSTS:?Set the VPS_KNOWN_HOSTS production environment secret}"
       - name: Configure SSH
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
