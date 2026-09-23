@@ -11,7 +11,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
 
   return (
     <main>
-      <SiteHeader showEvents={false} />
+      <SiteHeader />
 
       <section className="hero">
         <p className="eyebrow">Events worth showing up for</p>

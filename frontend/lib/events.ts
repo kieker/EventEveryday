@@ -1,5 +1,7 @@
 const API_URL = process.env.INTERNAL_API_URL ?? "http://localhost:8000/api";
 const PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+// Preserve the public scheme when the server calls Django over the internal network.
+const API_HEADERS = { "X-Forwarded-Proto": new URL(PUBLIC_API_URL).protocol.slice(0, -1) };
 
 export type EventSummary = {
   slug: string;
@@ -23,7 +25,10 @@ export type EventDetail = EventSummary & {
 
 export async function getEvents(query = ""): Promise<EventSummary[]> {
   try {
-    const response = await fetch(`${API_URL}/events/?q=${encodeURIComponent(query)}`, { cache: "no-store" });
+    const response = await fetch(`${API_URL}/events/?q=${encodeURIComponent(query)}`, {
+      cache: "no-store",
+      headers: API_HEADERS,
+    });
     if (!response.ok) return [];
     return response.json();
   } catch {
@@ -35,6 +40,7 @@ export async function getEvent(slug: string): Promise<EventDetail | null> {
   try {
     const response = await fetch(`${API_URL}/events/${encodeURIComponent(slug)}/`, {
       cache: "no-store",
+      headers: API_HEADERS,
     });
     if (!response.ok) return null;
     return response.json();
